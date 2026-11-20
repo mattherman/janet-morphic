@@ -1,24 +1,20 @@
 (defmacro defmorph [name impl &opt parent]
-    ~(upscope
-        (def ,name ,impl)
-        (when ,parent (table/setproto ,name ,parent))
-        (defn ,(symbol "<" name ">") [bounds color]
-            (table/setproto @{
-                :bounds bounds
-                :color color
-                :submorphs @[]
-                :owner nil
-            } ,name))))
+  ~(upscope
+     (def ,name ,impl)
+     (when ,parent (table/setproto ,name ,parent))
+     (defn ,(symbol "<" name ">") [bounds color]
+       (table/setproto @{:bounds bounds
+                         :color color
+                         :submorphs @[]
+                         :owner nil} ,name))))
 
-(defmorph Morph @{
-    :draw (fn [self canvas] (print "Drawing generic morph"))})
+(defmorph Morph @{:draw (fn [self canvas] (print "Drawing generic morph"))})
 
-(defmorph RectMorph @{
-    :draw (fn [self canvas]
-            (print "Drawing rect morph")
-            (pp self)
-            (pp canvas))}
-    Morph)
+(defmorph RectMorph @{:draw (fn [self canvas]
+                              (print "Drawing rect morph")
+                              (pp self)
+                              (pp canvas))}
+  Morph)
 
 (defmorph OtherMorph @{} Morph)
 
