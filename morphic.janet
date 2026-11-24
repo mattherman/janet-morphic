@@ -1,34 +1,30 @@
-(defmacro defmorph [name impl &opt parent]
-    ~(upscope
-        (def ,name ,impl)
-        (when ,parent (table/setproto ,name ,parent))
-        (defn ,(symbol "<" name ">") [bounds color]
-            (table/setproto @{
-                :bounds bounds
-                :color color
-                :submorphs @[]
-                :owner nil
-            } ,name))))
+(def Morph @{:draw (fn [self canvas] (print "Drawing Morph"))
+             :draw-all (fn [self canvas]
+                         (:draw self canvas)
+                         (each submorph (self :submorphs)
+                           (:draw-all submorph canvas)))
+             :add-child (fn [self child]
+                          # TODO: Remove the child from its current owner if it has one
+                          (array/push (self :submorphs) child)
+                          (set (child :owner) self))})
 
-(defmorph Morph @{
-    :draw (fn [self canvas] (print "Drawing generic morph"))})
+(defn make-morph [morph-type &opt impl]
+  (def morph (merge @{:submorphs @[]} (default impl @{})))
+  (table/setproto morph morph-type)
+  morph) 
 
-(defmorph RectMorph @{
-    :draw (fn [self canvas]
-            (print "Drawing rect morph")
-            (pp self)
-            (pp canvas))}
-    Morph)
+(def RectMorph (make-morph Morph @{:draw (fn [self canvas]
+                 (printf "Drawing RectMorph, bounds: %q color: %x" (self :bounds) (self :color)))
+         :bounds [0 0 10 10]
+         :color 0xFF0000}))
 
-(defmorph OtherMorph @{} Morph)
+(def outer (make-morph RectMorph @{ :bounds [0 0 100 100] :color 0x00FF00 }))
+(def inner (make-morph RectMorph @{ :bounds [10 10 80 80] :color 0x0000FF }))
 
+(:add-child outer inner)
+
+(def world (make-morph Morph))
+(:add-child world outer)
 (def canvas @{})
 
-(def generic-morph (<Morph> [2 2 5 5] 1))
-(:draw generic-morph canvas)
-
-(def rect-morph (<RectMorph> [0 0 3 3] 2))
-(:draw rect-morph canvas)
-
-(def other-morph (<OtherMorph> nil nil))
-(:draw other-morph canvas)
+(:draw-all world canvas)
